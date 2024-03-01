@@ -44,31 +44,32 @@ class SegmentationModel:
             cls._instance = cls(*args, **kwargs)
         return cls._instance
 
-    def __init__(self,
-                 model_type='vit_h',
-                 checkpoint='sam_vit_h_4b8939.pth',
-                 device='cuda:1',
-                 amg_kwargs={}):
+    def __init__(
+        self,
+        model_type="vit_h",
+        checkpoint_path="sam_vit_h_4b8939.pth",
+        device="cuda:1",
+        amg_kwargs={},
+    ):
 
-        sam = sam_model_registry[model_type](
-            checkpoint=f"{os.environ['CHECKPOINTS_PATH']}/{checkpoint}")
+        sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
         _ = sam.to(device=device)
-        self.model = SamAutomaticMaskGenerator(sam,
-                                               output_mode='coco_rle',
-                                               **amg_kwargs)
+        self.model = SamAutomaticMaskGenerator(
+            sam, output_mode="coco_rle", **amg_kwargs
+        )
 
     @staticmethod
-    def save_masks(image_path, save_path, masks):
+    def save_masks(save_path, masks):
 
-        save_path = os.path.join(os.environ["DATA_PATH"], save_path)
+        save_path = os.path.join(save_path)
 
         with open(save_path, "w") as f:
             json.dump(masks, f)
 
-        print('Saved masks to {}'.format(save_path))
+        print("Saved masks to {}".format(save_path))
 
     def extract_masks(self, image_path):
-        print(f'Loading image from {image_path}')
+        print(f"Loading image from {image_path}")
 
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
