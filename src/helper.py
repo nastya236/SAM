@@ -9,23 +9,25 @@ from magicgui import magicgui
 def save_annotated_mask(viewer: napari.Viewer, data_path: str, ind: int):
     layer_name = f"mask{ind:04d}"
     mask = viewer.layers[layer_name].data
-    save_path = os.path.join(data_path, "mask", f"frame_{ind}.npy")
+    save_path = os.path.join(data_path, "masks", f"frame_{ind}.npy")
     np.save(save_path, mask)
     viewer.close()
 
 
 def add_image_mask_to_viewer(
-    viewer: napari.Viewer, image: np.ndarray, mask: np.ndarray, ind: int, curren: bool
+    viewer: napari.Viewer, image: np.ndarray, 
+    mask: np.ndarray, 
+    ind: int, 
+    current: bool = True, 
 ):
 
     image_layer = viewer.add_image(image, name=f"image{ind:04d}")
     mask_layer = viewer.add_labels(mask, name=f"mask{ind:04d}")
     mask_layer.mode = "PAINT"
-    mask_layer.brush_size = 2
-    mask_layer.opacity = 0.6
-
-    resize_and_position_layer(image_layer, current)
-    resize_and_position_layer(mask_layer, current)
+    # mask_layer.brush_size = 2
+    # mask_layer.opacity = 0.6
+    # resize_and_position_layer(image_layer, current)
+    # resize_and_position_layer(mask_layer, current)
 
 
 def resize_and_position_layer(layer, current: bool):
@@ -37,7 +39,15 @@ def resize_and_position_layer(layer, current: bool):
 
 def change_layer_mask(viewer: napari.Viewer, mask: np.ndarray, ind: int):
     layer_name = f"mask{ind:04d}"
-    viewer.layers[layer_name].data = mask
+    print(f"Attempting to update {layer_name}")
+    if layer_name in viewer.layers:
+        viewer.layers[layer_name].data = mask
+        print(f"Updated {layer_name}")
+    else:
+        print(f"Layer {layer_name} not found.")
+
+    viewer.layers[layer_name].visible = True
+
 
 
 def toggle_modes(viewer: napari.Viewer, ind: int):

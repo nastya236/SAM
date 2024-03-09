@@ -1,20 +1,22 @@
 #!/bin/bash
 
-# Directory containing video files
-VIDEO_DIR="../data"
+VIDEO_DIR="../data/videos"
 
-# Iterate over each video file in the VIDEO_DIR
+mkdir -p "$VIDEO_DIR"
 for video in "$VIDEO_DIR"/*.mp4; do
-  # Skip if no video files are found
   [[ -e "$video" ]] || continue
 
-  # Extract filename without extension
   base_name=$(basename "$video" .mp4)
+  output_dir="../data/$base_name/frames"
 
-  # Create a directory for the current video file
-  mkdir -p "$VIDEO_DIR/$base_name"
+  mkdir -p "$output_dir"
 
-  echo "$VIDEO_DIR/$base_name"
-  # Use ffmpeg to split video into frames and save in the created directory
-  ffmpeg -i "$video" -vf fps=1 "$VIDEO_DIR/$base_name/frame-%04d.png"
+  duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$video")
+  duration=${duration%.*} 
+
+  echo "Extracting frames from $video to $output_dir"
+
+  for ((i=0; i<=$duration; i+=$2)); do
+    ffmpeg -ss $i -i "$video" -frames:v 1 "$output_dir/frame_$(printf "%04d" $i).png"
+  done
 done
