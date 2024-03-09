@@ -1,9 +1,16 @@
+import argparse
 import glob
 import os
 import cv2
 import numpy as np
 import napari
 from magicgui import magicgui
+from src.helper import (
+    add_image_mask_to_viewer,
+    save_annotated_mask,
+    set_label_to,
+    toggle_modes,
+)
 
 
 def get_image_and_mask_paths(data_path):
@@ -58,38 +65,36 @@ def add_save_button_to_viewer(viewer, data_path, current_id):
     viewer.window.add_dock_widget(save_button)
 
 
-def save_annotated_mask(viewer: napari.Viewer, data_path: str, ind: int):
-    layer_name = f"mask{ind:04d}"
-    mask = viewer.layers[layer_name].data
-    save_path = os.path.join(data_path, "masks", f"frame_{ind:04d}.npy")
-    np.save(save_path, mask)
-    viewer.close()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_path", type=str, required=True)
+    parser.add_argument(
+        "--step",
+        type=int,
+        default=1,
+        help="Step between frames, 30 = 1 frame per 30 seconds",
+    )
+    args = parser.parse_args()
 
+    os.makedirs(os.path.join(args.data_path, "masks"), exist_ok=True)
+    os.makedirs(os.path.join(args.data_path, "cropped_frames"), exist_ok=True)
 
-def toggle_modes(viewer: napari.Viewer, ind: int):
+    image_paths, mask_paths = get_image_and_mask_paths(args.data_path)
+    image_ids_unlabeled = get_unlabeled_image_ids(image_paths, mask_paths)
 
-    modes = ["paint", "fill"]
-    layer_name = f"mask{ind:04d}"
-    current_mode = viewer.layers[layer_name].mode
+    for current_id in image_ids_unlabeled:
+        image_path = os.path.join(
+            args.data_path, "frames", f"frame_{current_id:04d}.png"
+        )
+        image = preprocess_image(image_path)
+        cropped_path = os.path.join(
+            args.data_path, "cropped_frames", f"frame_{current_id:04d}.png"
+        )
+        cv2.imwrite(cropped_path, image)
 
-    if current_mode in modes:
-        next_mode_index = (modes.index(current_mode) + 1) % len(modes)
-        next_mode = modes[next_mode_index]
-    else:
-        next_mode = modes[0]
+        mask = create_or_load_mask(args.data_path, current_id, args.step)
 
-    viewer.layers[layer_name].mode = next_mode
-    print(f"Switched to {next_mode} mode")
+        viewer = setup_viewer(image, mask, current_id)
+        add_save_button_to_viewer(viewer, args.data_path, current_id)
 
-
-def set_label_to(viewer: napari.Viewer, ind: int, label_value: int):
-    layer_name = f"mask{ind:04d}"
-    if layer_name in viewer.layers:
-        layer = viewer.layers[layer_name]
-        if isinstance(layer, napari.layers.Labels):
-            layer.selected_label = label_value
-            print(f"Switched to label: {label_value}")
-        else:
-            print(f"The layer '{layer_name}' is not a Labels layer.")
-    else:
-        print(f"No layer named '{layer_name}' found.")
+        napari.run()
