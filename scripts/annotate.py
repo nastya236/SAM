@@ -5,17 +5,12 @@ import cv2
 import numpy as np
 import napari
 from magicgui import magicgui
-from src.helper import (
-    add_image_mask_to_viewer,
-    save_annotated_mask,
-    set_label_to,
-    toggle_modes,
-)
+from src.helper import save_annotated_mask
 
 
 def get_image_and_mask_paths(data_path):
     """Get sorted lists of image and mask paths."""
-    image_paths = sorted(glob.glob(os.path.join(data_path, "frames", "*")))
+    image_paths = sorted(glob.glob(os.path.join(data_path, "frames", "*")))[::2]
     mask_paths = sorted(glob.glob(os.path.join(data_path, "masks", "*")))
     return image_paths, mask_paths
 
@@ -25,6 +20,7 @@ def get_unlabeled_image_ids(image_paths, mask_paths):
     extract_id = lambda path: int(os.path.basename(path).split("_")[1].split(".")[0])
     image_ids = list(map(extract_id, image_paths))
     mask_ids = list(map(extract_id, mask_paths))
+
     return sorted(list(set(image_ids) - set(mask_ids)))
 
 
@@ -80,6 +76,7 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(args.data_path, "cropped_frames"), exist_ok=True)
 
     image_paths, mask_paths = get_image_and_mask_paths(args.data_path)
+    print(image_paths)
     image_ids_unlabeled = get_unlabeled_image_ids(image_paths, mask_paths)
 
     for current_id in image_ids_unlabeled:
